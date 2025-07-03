@@ -1,0 +1,20 @@
+{
+  "library": "spring-boot",
+  "useSpringBoot3": true,
+  "javaVersion": "17",
+  "buildTool": "gradle",
+  "interfaceOnly": false,
+  "openApiNullable": false,
+  "controllerStrategy": "annotated",
+  "dateLibrary": "java8",
+  "hideGenerationTimestamp": true,
+
+  "groupId": "in.rahulojha.bookbank",
+  "artifactId": "book-bank",
+  "artifactVersion": "1.0.0",
+  "basePackage": "in.rahulojha.bookbank",
+  "apiPackage": "in.rahulojha.bookbank.api",
+  "modelPackage": "in.rahulojha.bookbank.model",
+  "configPackage": "in.rahulojha.bookbank.config",
+  "invokerPackage": "in.rahulojha.bookbank"
+}

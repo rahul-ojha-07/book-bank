@@ -1,0 +1,474 @@
+
+
+openapi: 3.0.3
+info:
+  title: Book Bank API
+  version: 1.0.0
+  description: API for managing books, file uploads, downloads, and statistics
+
+servers:
+  - url: https://api.example.com
+
+security:
+  - bearerAuth: []
+
+paths:
+  /api/books:
+    get:
+      summary: Get paginated books with optional filtering
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 0
+        - in: query
+          name: size
+          schema:
+            type: integer
+            default: 12
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: format
+          schema:
+            $ref: '#/components/schemas/FormatEnum'
+        - in: query
+          name: genre
+          schema:
+            type: string
+        - in: query
+          name: author
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated list of books
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedBooksResponse'
+              examples:
+                default:
+                  value:
+                    content:
+                      - id: 1
+                        title: "Book Title"
+                        author: "Author Name"
+                        genre: "Fiction"
+                        format: "PDF"
+                        fileSize: 1024000
+                        year: 2023
+                        description: "Book description"
+                        tags: ["tag1", "tag2"]
+                        coverUrl: "/api/books/1/cover"
+                        uploadDate: "2024-01-15T10:30:00Z"
+                    totalPages: 5
+                    totalElements: 50
+                    number: 0
+                    size: 12
+
+  /api/books/{id}:
+    get:
+      summary: Get single book details
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: UUID
+      responses:
+        '200':
+          description: Single book object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+              examples:
+                default:
+                  value:
+                    id: 1
+                    title: "Book Title"
+                    author: "Author Name"
+                    genre: "Fiction"
+                    format: "PDF"
+                    fileSize: 1024000
+                    year: 2023
+                    description: "Book description"
+                    tags: ["tag1", "tag2"]
+                    coverUrl: "/api/books/1/cover"
+                    uploadDate: "2024-01-15T10:30:00Z"
+        '404':
+          description: Book not found
+
+    put:
+      summary: Update book metadata
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookMetadata'
+      responses:
+        '200':
+          description: Book metadata updated
+        '404':
+          description: Book not found
+
+    delete:
+      summary: Delete book
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Book deleted
+
+  /api/books/upload:
+    post:
+      summary: Upload new book(s)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                metadata:
+                  type: string
+                  description: JSON string of metadata
+      responses:
+        '201':
+          description: Book(s) uploaded
+
+  /api/books/{id}/download:
+    get:
+      summary: Download book file
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Book file download
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: File not found
+
+  /api/books/{id}/cover:
+    get:
+      summary: Get book cover image
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Cover image
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Cover not found
+
+  /api/books/stats:
+    get:
+      summary: Get library statistics
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Library statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stats'
+              examples:
+                default:
+                  value:
+                    totalBooks: 150
+                    pdfCount: 80
+                    epubCount: 50
+                    mobiCount: 15
+                    azw3Count: 5
+                    authorCount: 75
+                    totalFileSize: 5242880000
+  /minio/upload:
+    post:
+      summary: Upload a file to MinIO
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: File uploaded successfully
+          content:
+            text/plain:
+              example: Uploaded Successfully
+        '500':
+          description: Server error
+          content:
+            text/plain:
+              example:
+                Error: Upload failed
+
+  /minio/download/{filename}:
+    get:
+      summary: Download a file from MinIO
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: File download
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '500':
+          description: Server error
+          content:
+            text/plain:
+              example:
+                Error: File not found
+
+  /minio/delete/{filename}:
+    delete:
+      summary: Delete a file from MinIO
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: File deleted
+          content:
+            text/plain:
+              example: Deleted
+        '500':
+          description: Server error
+          content:
+            text/plain:
+              example:
+                Error: Delete failed
+
+  /minio/list:
+    get:
+      summary: List all files in MinIO bucket
+      responses:
+        '200':
+          description: List of files
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+              example: [ "file1.txt", "file2.jpg" ]
+        '500':
+          description: Server error
+          content:
+            text/plain:
+              example:
+                Error: Listing failed
+
+  /minio/presigned/download/{filename}:
+    get:
+      summary: Get a presigned URL to download a file
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Presigned download URL
+          content:
+            text/plain:
+              example: https://minio.example.com/download/abc.txt?X-Amz-Signature=xyz
+        '500':
+          description: Server error
+          content:
+            text/plain:
+              example:
+                Error: Presigned URL generation failed
+
+  /minio/presigned/upload/{filename}:
+    get:
+      summary: Get a presigned URL to upload a file
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Presigned upload URL
+          content:
+            text/plain:
+              example: https://minio.example.com/upload/abc.txt?X-Amz-Signature=xyz
+        '500':
+          description: Server error
+          content:
+            text/plain:
+              example:
+                Error: Presigned URL generation failed
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Book:
+      type: object
+      properties:
+        id:
+          type: UUID
+        title:
+          type: string
+        author:
+          type: string
+        genre:
+          type: string
+        format:
+          $ref: '#/components/schemas/FormatEnum'
+        fileSize:
+          type: integer
+        year:
+          type: integer
+        description:
+          type: string
+        fileName:
+          type: string
+        filePath:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        coverUrl:
+          type: string
+        uploadDate:
+          type: string
+          format: date-time
+
+    PaginatedBooksResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/Book'
+        totalPages:
+          type: integer
+        totalElements:
+          type: integer
+        number:
+          type: integer
+        size:
+          type: integer
+
+    BookMetadata:
+      type: object
+      properties:
+        title:
+          type: string
+        author:
+          type: string
+        genre:
+          type: string
+        year:
+          type: integer
+        description:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+
+    Stats:
+      type: object
+      properties:
+        totalBooks:
+          type: integer
+        pdfCount:
+          type: integer
+        epubCount:
+          type: integer
+        mobiCount:
+          type: integer
+        azw3Count:
+          type: integer
+        authorCount:
+          type: integer
+        totalFileSize:
+          type: integer
+
+    FormatEnum:
+      type: string
+      enum:
+        - PDF
+        - EPUB
+        - MOBI
+        - AZW3
+    Error:
+      type: object
+      properties:
+        message:
+          type: string

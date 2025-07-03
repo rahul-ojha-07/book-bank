@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: book-bank
+  datasource:
+    url: jdbc:mysql://localhost:3306/bookbank
+    username: rahul
+    password: rahul123
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+  sql:
+    init:
+      platform: mysql
+      mode: always
+  security:
+    user:
+      name: user
+      password: password
+      roles: Admin
+
+minio:
+  host: ${MINIO_HOST}
+  bucketName: ${MINIO_BUCKET}
+  accessKey: ${MINIO_ACCESS_KEY}
+  secretKey: ${MINIO_SECRET_KEY}

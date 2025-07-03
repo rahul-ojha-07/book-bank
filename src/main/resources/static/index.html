@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ebook Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .file-drop-zone {
+            border: 2px dashed #cbd5e1;
+            transition: all 0.3s ease;
+        }
+        .file-drop-zone.dragover {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        .book-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .book-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+<!-- Navigation -->
+<nav class="bg-white shadow-sm border-b">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16">
+            <div class="flex items-center">
+                <i class="fas fa-book text-blue-600 text-2xl mr-3"></i>
+                <h1 class="text-xl font-bold text-gray-900">Ebook Manager</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <input type="text" id="globalSearch" placeholder="Search books..."
+                           class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                </div>
+                <button onclick="openUploadModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-plus mr-2"></i>Upload Book
+                </button>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Filter Section -->
+    <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Format</label>
+                <select id="formatFilter" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500">
+                    <option value="">All Formats</option>
+                    <option value="PDF">PDF</option>
+                    <option value="EPUB">EPUB</option>
+                    <option value="MOBI">MOBI</option>
+                    <option value="AZW3">AZW3</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Genre</label>
+                <select id="genreFilter" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500">
+                    <option value="">All Genres</option>
+                    <option value="Fiction">Fiction</option>
+                    <option value="Non-Fiction">Non-Fiction</option>
+                    <option value="Science">Science</option>
+                    <option value="Technology">Technology</option>
+                    <option value="Biography">Biography</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Author</label>
+                <input type="text" id="authorFilter" placeholder="Filter by author..."
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="flex items-end space-x-2">
+                <button onclick="applyFilters()" class="flex-1 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+                    <i class="fas fa-filter mr-2"></i>Filter
+                </button>
+                <button onclick="clearFilters()" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <div class="flex items-center">
+                <div class="p-3 bg-blue-100 rounded-full">
+                    <i class="fas fa-book text-blue-600"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm text-gray-500">Total Books</p>
+                    <p class="text-2xl font-bold text-gray-900" id="totalBooks">0</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <div class="flex items-center">
+                <div class="p-3 bg-green-100 rounded-full">
+                    <i class="fas fa-file-pdf text-green-600"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm text-gray-500">PDF Books</p>
+                    <p class="text-2xl font-bold text-gray-900" id="pdfCount">0</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <div class="flex items-center">
+                <div class="p-3 bg-purple-100 rounded-full">
+                    <i class="fas fa-tablet-alt text-purple-600"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm text-gray-500">EPUB Books</p>
+                    <p class="text-2xl font-bold text-gray-900" id="epubCount">0</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <div class="flex items-center">
+                <div class="p-3 bg-orange-100 rounded-full">
+                    <i class="fas fa-users text-orange-600"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm text-gray-500">Authors</p>
+                    <p class="text-2xl font-bold text-gray-900" id="authorCount">0</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Toggle -->
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-900">Your Library</h2>
+        <div class="flex items-center space-x-2">
+            <span class="text-sm text-gray-500">View:</span>
+            <button onclick="setView('grid')" id="gridViewBtn" class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                <i class="fas fa-th-large"></i>
+            </button>
+            <button onclick="setView('list')" id="listViewBtn" class="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                <i class="fas fa-list"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Books Grid/List Container -->
+    <div id="booksContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <!-- Books will be loaded here dynamically -->
+    </div>
+
+    <!-- Pagination -->
+    <div class="flex justify-center items-center space-x-2 mt-8" id="pagination">
+        <!-- Pagination will be generated dynamically -->
+    </div>
+</div>
+
+<!-- Upload Modal -->
+<div id="uploadModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-2xl font-bold text-gray-900">Upload New Book</h3>
+            <button onclick="closeUploadModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+
+        <form id="uploadForm" enctype="multipart/form-data">
+            <!-- File Upload Area -->
+            <div class="file-drop-zone rounded-lg p-8 text-center mb-6" id="dropZone">
+                <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
+                <p class="text-lg text-gray-600 mb-2">Drag and drop your ebook here</p>
+                <p class="text-sm text-gray-500 mb-4">or click to browse files</p>
+                <input type="file" id="fileInput" name="file" accept=".pdf,.epub,.mobi,.azw3" class="hidden" multiple>
+                <button type="button" onclick="document.getElementById('fileInput').click()"
+                        class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                    Choose Files
+                </button>
+            </div>
+
+            <!-- Selected Files Display -->
+            <div id="selectedFiles" class="mb-6 hidden">
+                <h4 class="font-semibold text-gray-900 mb-3">Selected Files:</h4>
+                <div id="filesList" class="space-y-2"></div>
+            </div>
+
+            <!-- Metadata Form -->
+            <div id="metadataForm" class="space-y-4 hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Title</label>
+                        <input type="text" id="bookTitle" name="title" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Author</label>
+                        <input type="text" id="bookAuthor" name="author" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Genre</label>
+                        <input type="text" id="bookGenre" name="genre" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Publication Year</label>
+                        <input type="number" id="bookYear" name="year" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                    <textarea id="bookDescription" name="description" rows="3"
+                              class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Tags (comma separated)</label>
+                    <input type="text" id="bookTags" name="tags" placeholder="fiction, adventure, classic"
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+
+            <!-- Upload Progress -->
+            <div id="uploadProgress" class="hidden mb-6">
+                <div class="flex justify-between text-sm text-gray-600 mb-2">
+                    <span>Uploading...</span>
+                    <span id="progressText">0%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div id="progressBar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="closeUploadModal()"
+                        class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                    Cancel
+                </button>
+                <button type="submit" id="uploadBtn"
+                        class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    Upload Book
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Book Details Modal -->
+<div id="bookModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-start mb-6">
+            <h3 class="text-2xl font-bold text-gray-900" id="modalBookTitle">Book Details</h3>
+            <button onclick="closeBookModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Book Cover -->
+            <div class="lg:col-span-1">
+                <div class="bg-gray-200 rounded-lg aspect-[3/4] flex items-center justify-center mb-4">
+                    <img id="modalBookCover" class="max-w-full max-h-full object-cover rounded-lg hidden" alt="Book cover">
+                    <i class="fas fa-book text-6xl text-gray-400" id="modalBookIcon"></i>
+                </div>
+                <div class="space-y-2">
+                    <button onclick="downloadBook()" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-download mr-2"></i>Download
+                    </button>
+                    <button onclick="editBook()" class="w-full bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors">
+                        <i class="fas fa-edit mr-2"></i>Edit
+                    </button>
+                    <button onclick="deleteBook()" class="w-full bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors">
+                        <i class="fas fa-trash mr-2"></i>Delete
+                    </button>
+                </div>
+            </div>
+
+            <!-- Book Details -->
+            <div class="lg:col-span-2">
+                <div class="space-y-4">
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-2">Author</h4>
+                        <p class="text-gray-700" id="modalBookAuthor">-</p>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-2">Genre</h4>
+                        <p class="text-gray-700" id="modalBookGenre">-</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-2">Format</h4>
+                            <p class="text-gray-700" id="modalBookFormat">-</p>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-2">File Size</h4>
+                            <p class="text-gray-700" id="modalBookSize">-</p>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-900 mb-2">Publication Year</h4>
+                            <p class="text-gray-700" id="modalBookYear">-</p>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-2">Description</h4>
+                        <p class="text-gray-700" id="modalBookDescription">No description available.</p>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-2">Tags</h4>
+                        <div class="flex flex-wrap gap-2" id="modalBookTags">
+                            <!-- Tags will be inserted here -->
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-gray-900 mb-2">Upload Date</h4>
+                        <p class="text-gray-700" id="modalBookUploadDate">-</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Global variables
+    let currentBooks = [];
+    let currentView = 'grid';
+    let currentPage = 1;
+    let totalPages = 1;
+    let currentBookId = null;
+
+    // Initialize the application
+    document.addEventListener('DOMContentLoaded', function() {
+        loadBooks();
+        setupEventListeners();
+        setView('grid');
+    });
+
+    // Event listeners setup
+    function setupEventListeners() {
+        // File upload drag and drop
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.addEventListener('dragover', handleDragOver);
+        dropZone.addEventListener('dragleave', handleDragLeave);
+        dropZone.addEventListener('drop', handleDrop);
+        fileInput.addEventListener('change', handleFileSelect);
+
+        // Search functionality
+        document.getElementById('globalSearch').addEventListener('input', debounce(handleSearch, 300));
+
+        // Upload form submission
+        document.getElementById('uploadForm').addEventListener('submit', handleUpload);
+    }
+
+    // Drag and drop handlers
+    function handleDragOver(e) {
+        e.preventDefault();
+        e.currentTarget.classList.add('dragover');
+    }
+
+    function handleDragLeave(e) {
+        e.preventDefault();
+        e.currentTarget.classList.remove('dragover');
+    }
+
+    function handleDrop(e) {
+        e.preventDefault();
+        e.currentTarget.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        handleFiles(files);
+    }
+
+    function handleFileSelect(e) {
+        const files = e.target.files;
+        handleFiles(files);
+    }
+
+    function handleFiles(files) {
+        const filesList = document.getElementById('filesList');
+        const selectedFiles = document.getElementById('selectedFiles');
+        const metadataForm = document.getElementById('metadataForm');
+
+        filesList.innerHTML = '';
+
+        Array.from(files).forEach(file => {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
+            fileItem.innerHTML = `
+                    <div class="flex items-center">
+                        <i class="fas fa-file-alt text-gray-500 mr-3"></i>
+                        <div>
+                            <p class="font-medium text-gray-900">${file.name}</p>
+                            <p class="text-sm text-gray-500">${formatFileSize(file.size)}</p>
+                        </div>
+                    </div>
+                    <button type="button" class="text-red-500 hover:text-red-700">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+            filesList.appendChild(fileItem);
+        });
+
+        selectedFiles.classList.remove('hidden');
+        metadataForm.classList.remove('hidden');
+    }
+
+    // Load books from backend
+    async function loadBooks(page = 1, filters = {}) {
+        try {
+            const params = new URLSearchParams({
+                page: page - 1, // Spring Boot uses 0-based pagination
+                size: 12,
+                ...filters
+            });
+
+            const response = await fetch(`/api/books?${params}`);
+            const data = await response.json();
+
+            currentBooks = data.content || [];
+            totalPages = data.totalPages || 1;
+            currentPage = page;
+
+            renderBooks();
+            renderPagination();
+            updateStats();
+        } catch (error) {
+            console.error('Error loading books:', error);
+            showNotification('Error loading books', 'error');
+        }
+    }
+
+    // Render books in current view
+    function renderBooks() {
+        const container = document.getElementById('booksContainer');
+
+        if (currentBooks.length === 0) {
+            container.innerHTML = `
+                    <div class="col-span-full text-center py-12">
+                        <i class="fas fa-book text-6xl text-gray-300 mb-4"></i>
+                        <h3 class="text-xl font-medium text-gray-900 mb-2">No books found</h3>
+                        <p class="text-gray-500">Upload your first book to get started!</p>
+                    </div>
+                `;
+            return;
+        }
+
+        if (currentView === 'grid') {
+            container.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6';
+            container.innerHTML = currentBooks.map(book => createBookCard(book)).join('');
+        } else {
+            container.className = 'space-y-4';
+            container.innerHTML = currentBooks.map(book => createBookListItem(book)).join('');
+        }
+    }
+
+    // Create book card for grid view
+    function createBookCard(book) {
+        const formatIcon = getFormatIcon(book.format);
+        const coverImage = book.coverUrl ? `<img src="${book.coverUrl}" alt="${book.title}" class="w-full h-48 object-cover rounded-t-lg">` :
+            `<div class="w-full h-48 bg-gray-200 rounded-t-lg flex items-center justify-center">
+                    <i class="${formatIcon} text-4xl text-gray-400"></i>
+                </div>`;
+
+        return `
+                <div class="book-card bg-white rounded-lg shadow-sm overflow-hidden cursor-pointer" onclick="openBookModal('${book.id}')">
+                    ${coverImage}
+                    <div class="p-4">
+                        <h3 class="font-semibold text-gray-900 mb-1 truncate">${book.title}</h3>
+                        <p class="text-sm text-gray-600 mb-2 truncate">${book.author}</p>
+                        <div class="flex items-center justify-between">
+                            <span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">${book.format}</span>
+                            <span class="text-xs text-gray-500">${formatFileSize(book.fileSize)}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+    }
+
+    // Create book list item for list view
+    function createBookListItem(book) {
+        const formatIcon = getFormatIcon(book.format);
+
+        return `
+                <div class="bg-white rounded-lg shadow-sm p-4 cursor-pointer hover:shadow-md transition-shadow" onclick="openBookModal(${book.id})">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-12 h-16 bg-gray-200 rounded flex items-center justify-center flex-shrink-0">
+                            ${book.coverUrl ? `<img src="${book.coverUrl}" alt="${book.title}" class="w-full h-full object-cover rounded">` :
+            `<i class="${formatIcon} text-xl text-gray-400"></i>`}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="font-semibold text-gray-900 truncate">${book.title}</h3>
+                            <p class="text-sm text-gray-600 truncate">${book.author}</p>
+                            <p class="text-xs text-gray-500">${book.genre || 'Unknown Genre'}</p>
+                        </div>
+                        <div class="flex items-center space-x-6 text-sm text-gray-500">
+                            <span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">${book.format}</span>
+                            <span>${formatFileSize(book.fileSize)}</span>
+                            <span>${new Date(book.uploadDate).toLocaleDateString()}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+    }
+
+    // Get format icon
+    function getFormatIcon(format) {
+        const icons = {
+            'PDF': 'fas fa-file-pdf',
+            'EPUB': 'fas fa-tablet-alt',
+            'MOBI': 'fas fa-mobile-alt',
+            'AZW3': 'fas fa-kindle'
+        };
+        return icons[format] || 'fas fa-file-alt';
+    }
+
+    // Format file size
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // Set view mode
+    function setView(view) {
+        currentView = view;
+        document.getElementById('gridViewBtn').classList.toggle('bg-blue-600', view === 'grid');
+        document.getElementById('gridViewBtn').classList.toggle('text-white', view === 'grid');
+        document.getElementById('listViewBtn').classList.toggle('bg-blue-600', view === 'list');
+        document.getElementById('listViewBtn').classList.toggle('text-white', view === 'list');
+        renderBooks();
+    }
+
+    // Modal functions
+    function openUploadModal() {
+        document.getElementById('uploadModal').classList.remove('hidden');
+    }
+
+    function closeUploadModal() {
+        document.getElementById('uploadModal').classList.add('hidden');
+        document.getElementById('uploadForm').reset();
+        document.getElementById('selectedFiles').classList.add('hidden');
+        document.getElementById('metadataForm').classList.add('hidden');
+    }
+
+    function openBookModal(bookId) {
+        currentBookId = bookId;
+        const book = currentBooks.find(b => b.id === bookId);
+        if (!book) return;
+
+        document.getElementById('modalBookTitle').textContent = book.title;
+        document.getElementById('modalBookAuthor').textContent = book.author || '-';
+        document.getElementById('modalBookGenre').textContent = book.genre || '-';
+        document.getElementById('modalBookFormat').textContent = book.format;
+        document.getElementById('modalBookSize').textContent = formatFileSize(book.fileSize);
+        document.getElementById('modalBookYear').textContent = book.year || '-';
+        document.getElementById('modalBookDescription').textContent = book.description || 'No description available.';
+        document.getElementById('modalBookUploadDate').textContent = new Date(book.uploadDate).toLocaleDateString();
+
+        // Handle cover image
+        const coverImg = document.getElementById('modalBookCover');
+        const coverIcon = document.getElementById('modalBookIcon');
+        if (book.coverUrl) {
+            coverImg.src = book.coverUrl;
+            coverImg.classList.remove('hidden');
+            coverIcon.classList.add('hidden');
+        } else {
+            coverImg.classList.add('hidden');
+            coverIcon.classList.remove('hidden');
+        }
+
+        // Handle tags
+        const tagsContainer = document.getElementById('modalBookTags');
+        if (book.tags && book.tags.length > 0) {
+            tagsContainer.innerHTML = book.tags.map(tag =>
+                `<span class="px-2 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">${tag}</span>`
+            ).join('');
+        } else {
+            tagsContainer.innerHTML = '<span class="text-gray-500">No tags</span>';
+        }
+
+        document.getElementById('bookModal').classList.remove('hidden');
+    }
+
+    function closeBookModal() {
+        document.getElementById('bookModal').classList.add('hidden');
+        currentBookId = null;
+    }
+
+    // Book actions
+    async function downloadBook() {
+        if (!currentBookId) return;
+        try {
+            const response = await fetch(`/api/books/${currentBookId}/download`);
+            if (response.ok) {
+                const blob = await response.blob();
+                const book = currentBooks.find(b => b.id === currentBookId);
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${book.title}.${book.format.toLowerCase()}`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                showNotification('Download started', 'success');
+            } else {
+                throw new Error('Download failed');
+            }
+        } catch (error) {
+            console.error('Error downloading book:', error);
+            showNotification('Error downloading book', 'error');
+        }
+    }
+
+    async function deleteBook() {
+        if (!currentBookId) return;
+
+        if (confirm('Are you sure you want to delete this book? This action cannot be undone.')) {
+            try {
+                const response = await fetch(`/api/books/${currentBookId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    showNotification('Book deleted successfully', 'success');
+                    closeBookModal();
+                    loadBooks(currentPage);
+                } else {
+                    throw new Error('Delete failed');
+                }
+            } catch (error) {
+                console.error('Error deleting book:', error);
+                showNotification('Error deleting book', 'error');
+            }
+        }
+    }
+
+    function editBook() {
+        if (!currentBookId) return;
+        const book = currentBooks.find(b => b.id === currentBookId);
+        if (!book) return;
+
+        // Pre-fill the upload form with existing data for editing
+        document.getElementById('bookTitle').value = book.title || '';
+        document.getElementById('bookAuthor').value = book.author || '';
+        document.getElementById('bookGenre').value = book.genre || '';
+        document.getElementById('bookYear').value = book.year || '';
+        document.getElementById('bookDescription').value = book.description || '';
+        document.getElementById('bookTags').value = book.tags ? book.tags.join(', ') : '';
+
+        // Show metadata form
+        document.getElementById('metadataForm').classList.remove('hidden');
+
+        // Change button text and form action
+        const uploadBtn = document.getElementById('uploadBtn');
+        uploadBtn.textContent = 'Update Book';
+        uploadBtn.setAttribute('data-mode', 'edit');
+
+        closeBookModal();
+        openUploadModal();
+    }
+
+    // Search and filter functions
+    function handleSearch(e) {
+        const searchTerm = e.target.value;
+        const filters = { search: searchTerm };
+        loadBooks(1, filters);
+    }
+
+    function applyFilters() {
+        const filters = {
+            format: document.getElementById('formatFilter').value,
+            genre: document.getElementById('genreFilter').value,
+            author: document.getElementById('authorFilter').value,
+            search: document.getElementById('globalSearch').value
+        };
+
+        // Remove empty filters
+        Object.keys(filters).forEach(key => {
+            if (!filters[key]) delete filters[key];
+        });
+
+        loadBooks(1, filters);
+    }
+
+    function clearFilters() {
+        document.getElementById('formatFilter').value = '';
+        document.getElementById('genreFilter').value = '';
+        document.getElementById('authorFilter').value = '';
+        document.getElementById('globalSearch').value = '';
+        loadBooks(1);
+    }
+
+    // Upload handling
+    async function handleUpload(e) {
+        e.preventDefault();
+
+        const formData = new FormData();
+        const fileInput = document.getElementById('fileInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const isEdit = uploadBtn.getAttribute('data-mode') === 'edit';
+
+        if (!isEdit && (!fileInput.files || fileInput.files.length === 0)) {
+            showNotification('Please select a file to upload', 'error');
+            return;
+        }
+
+        // Show progress
+        document.getElementById('uploadProgress').classList.remove('hidden');
+        uploadBtn.disabled = true;
+
+        try {
+            // Add files (only for new uploads)
+            if (!isEdit) {
+                Array.from(fileInput.files).forEach(file => {
+                    formData.append('files', file);
+                });
+            }
+
+            // Add metadata
+            const metadata = {
+                title: document.getElementById('bookTitle').value,
+                author: document.getElementById('bookAuthor').value,
+                genre: document.getElementById('bookGenre').value,
+                year: document.getElementById('bookYear').value,
+                description: document.getElementById('bookDescription').value,
+                tags: document.getElementById('bookTags').value.split(',').map(tag => tag.trim()).filter(tag => tag)
+            };
+
+            if (isEdit) {
+                // Update existing book
+                const response = await fetch(`/api/books/${currentBookId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(metadata)
+                });
+
+                if (response.ok) {
+                    showNotification('Book updated successfully', 'success');
+                } else {
+                    throw new Error('Update failed');
+                }
+            } else {
+                formData.append('metadata', JSON.stringify(metadata));
+
+                // Upload new book
+                const response = await fetch('/api/books/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    showNotification('Book uploaded successfully', 'success');
+                } else {
+                    throw new Error('Upload failed');
+                }
+            }
+
+            closeUploadModal();
+            loadBooks(currentPage);
+
+        } catch (error) {
+            console.error('Error uploading book:', error);
+            showNotification('Error uploading book', 'error');
+        } finally {
+            document.getElementById('uploadProgress').classList.add('hidden');
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = 'Upload Book';
+            uploadBtn.removeAttribute('data-mode');
+        }
+    }
+
+    // Pagination
+    function renderPagination() {
+        const pagination = document.getElementById('pagination');
+        if (totalPages <= 1) {
+            pagination.innerHTML = '';
+            return;
+        }
+
+        let paginationHTML = '';
+
+        // Previous button
+        if (currentPage > 1) {
+            paginationHTML += `
+                    <button onclick="loadBooks(${currentPage - 1})"
+                            class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                `;
+        }
+
+        // Page numbers
+        const startPage = Math.max(1, currentPage - 2);
+        const endPage = Math.min(totalPages, currentPage + 2);
+
+        if (startPage > 1) {
+            paginationHTML += `
+                    <button onclick="loadBooks(1)"
+                            class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">1</button>
+                `;
+            if (startPage > 2) {
+                paginationHTML += '<span class="px-3 py-2">...</span>';
+            }
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            const isActive = i === currentPage;
+            paginationHTML += `
+                    <button onclick="loadBooks(${i})"
+                            class="px-3 py-2 border rounded-lg transition-colors ${
+                isActive
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'border-gray-300 hover:bg-gray-50'
+            }">${i}</button>
+                `;
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                paginationHTML += '<span class="px-3 py-2">...</span>';
+            }
+            paginationHTML += `
+                    <button onclick="loadBooks(${totalPages})"
+                            class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">${totalPages}</button>
+                `;
+        }
+
+        // Next button
+        if (currentPage < totalPages) {
+            paginationHTML += `
+                    <button onclick="loadBooks(${currentPage + 1})"
+                            class="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                `;
+        }
+
+        pagination.innerHTML = paginationHTML;
+    }
+
+    // Update statistics
+    async function updateStats() {
+        try {
+            const response = await fetch('/api/books/stats');
+            const stats = await response.json();
+
+            document.getElementById('totalBooks').textContent = stats.totalBooks || 0;
+            document.getElementById('pdfCount').textContent = stats.pdfCount || 0;
+            document.getElementById('epubCount').textContent = stats.epubCount || 0;
+            document.getElementById('authorCount').textContent = stats.authorCount || 0;
+        } catch (error) {
+            console.error('Error loading stats:', error);
+        }
+    }
+
+    // Utility functions
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transition-all duration-300 ${
+            type === 'success' ? 'bg-green-600 text-white' :
+                type === 'error' ? 'bg-red-600 text-white' :
+                    'bg-blue-600 text-white'
+        }`;
+        notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas ${
+            type === 'success' ? 'fa-check-circle' :
+                type === 'error' ? 'fa-exclamation-circle' :
+                    'fa-info-circle'
+        } mr-2"></i>
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white hover:text-gray-200">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+
+        document.body.appendChild(notification);
+
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 5000);
+    }
+</script>
+</body>
+</html>

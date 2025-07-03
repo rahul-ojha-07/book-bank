@@ -1,0 +1,599 @@
+openapi: 3.0.3
+info:
+  description: "API for managing books, file uploads, downloads, and statistics"
+  title: Book Bank API
+  version: 1.0.0
+servers:
+- url: https://api.example.com
+security:
+- bearerAuth: []
+paths:
+  /api/books:
+    get:
+      parameters:
+      - explode: true
+        in: query
+        name: page
+        required: false
+        schema:
+          default: 0
+          type: integer
+        style: form
+      - explode: true
+        in: query
+        name: size
+        required: false
+        schema:
+          default: 12
+          type: integer
+        style: form
+      - explode: true
+        in: query
+        name: search
+        required: false
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: format
+        required: false
+        schema:
+          $ref: "#/components/schemas/FormatEnum"
+        style: form
+      - explode: true
+        in: query
+        name: genre
+        required: false
+        schema:
+          type: string
+        style: form
+      - explode: true
+        in: query
+        name: author
+        required: false
+        schema:
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              examples:
+                default:
+                  value:
+                    content:
+                    - id: 1
+                      title: Book Title
+                      author: Author Name
+                      genre: Fiction
+                      format: PDF
+                      fileSize: 1024000
+                      year: 2023
+                      description: Book description
+                      tags:
+                      - tag1
+                      - tag2
+                      coverUrl: /api/books/1/cover
+                      uploadDate: 2024-01-15T10:30:00Z
+                    totalPages: 5
+                    totalElements: 50
+                    number: 0
+                    size: 12
+              schema:
+                $ref: "#/components/schemas/PaginatedBooksResponse"
+          description: Paginated list of books
+      security:
+      - bearerAuth: []
+      summary: Get paginated books with optional filtering
+      x-accepts:
+      - application/json
+  /api/books/{id}:
+    delete:
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+        style: simple
+      responses:
+        "204":
+          description: Book deleted
+      security:
+      - bearerAuth: []
+      summary: Delete book
+      x-accepts:
+      - application/json
+    get:
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              examples:
+                default:
+                  value:
+                    id: 1
+                    title: Book Title
+                    author: Author Name
+                    genre: Fiction
+                    format: PDF
+                    fileSize: 1024000
+                    year: 2023
+                    description: Book description
+                    tags:
+                    - tag1
+                    - tag2
+                    coverUrl: /api/books/1/cover
+                    uploadDate: 2024-01-15T10:30:00Z
+              schema:
+                $ref: "#/components/schemas/Book"
+          description: Single book object
+        "404":
+          description: Book not found
+      security:
+      - bearerAuth: []
+      summary: Get single book details
+      x-accepts:
+      - application/json
+    put:
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookMetadata"
+        required: true
+      responses:
+        "200":
+          description: Book metadata updated
+        "404":
+          description: Book not found
+      security:
+      - bearerAuth: []
+      summary: Update book metadata
+      x-content-type: application/json
+      x-accepts:
+      - application/json
+  /api/books/upload:
+    post:
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/_api_books_upload_post_request"
+        required: true
+      responses:
+        "201":
+          description: Book(s) uploaded
+      security:
+      - bearerAuth: []
+      summary: Upload new book(s)
+      x-content-type: multipart/form-data
+      x-accepts:
+      - application/json
+  /api/books/{id}/download:
+    get:
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+        style: simple
+      responses:
+        "200":
+          content:
+            application/octet-stream:
+              schema:
+                format: binary
+                type: string
+          description: Book file download
+        "404":
+          description: File not found
+      security:
+      - bearerAuth: []
+      summary: Download book file
+      x-accepts:
+      - application/octet-stream
+  /api/books/{id}/cover:
+    get:
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+        style: simple
+      responses:
+        "200":
+          content:
+            image/*:
+              schema:
+                format: binary
+                type: string
+          description: Cover image
+        "404":
+          description: Cover not found
+      summary: Get book cover image
+      x-accepts:
+      - image/*
+  /api/books/stats:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              examples:
+                default:
+                  value:
+                    totalBooks: 150
+                    pdfCount: 80
+                    epubCount: 50
+                    mobiCount: 15
+                    azw3Count: 5
+                    authorCount: 75
+                    totalFileSize: 5242880000
+              schema:
+                $ref: "#/components/schemas/Stats"
+          description: Library statistics
+      security:
+      - bearerAuth: []
+      summary: Get library statistics
+      x-accepts:
+      - application/json
+  /minio/upload:
+    post:
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/_minio_upload_post_request"
+        required: true
+      responses:
+        "200":
+          content:
+            text/plain:
+              example: Uploaded Successfully
+          description: File uploaded successfully
+        "500":
+          content:
+            text/plain:
+              example:
+                Error: Upload failed
+          description: Server error
+      summary: Upload a file to MinIO
+      x-content-type: multipart/form-data
+      x-accepts:
+      - text/plain
+  /minio/download/{filename}:
+    get:
+      parameters:
+      - explode: false
+        in: path
+        name: filename
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/octet-stream:
+              schema:
+                format: binary
+                type: string
+          description: File download
+        "500":
+          content:
+            text/plain:
+              example:
+                Error: File not found
+          description: Server error
+      summary: Download a file from MinIO
+      x-accepts:
+      - application/octet-stream
+      - text/plain
+  /minio/delete/{filename}:
+    delete:
+      parameters:
+      - explode: false
+        in: path
+        name: filename
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            text/plain:
+              example: Deleted
+          description: File deleted
+        "500":
+          content:
+            text/plain:
+              example:
+                Error: Delete failed
+          description: Server error
+      summary: Delete a file from MinIO
+      x-accepts:
+      - text/plain
+  /minio/list:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              example:
+              - file1.txt
+              - file2.jpg
+              schema:
+                items:
+                  type: string
+                type: array
+          description: List of files
+        "500":
+          content:
+            text/plain:
+              example:
+                Error: Listing failed
+          description: Server error
+      summary: List all files in MinIO bucket
+      x-accepts:
+      - application/json
+      - text/plain
+  /minio/presigned/download/{filename}:
+    get:
+      parameters:
+      - explode: false
+        in: path
+        name: filename
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            text/plain:
+              example: https://minio.example.com/download/abc.txt?X-Amz-Signature=xyz
+          description: Presigned download URL
+        "500":
+          content:
+            text/plain:
+              example:
+                Error: Presigned URL generation failed
+          description: Server error
+      summary: Get a presigned URL to download a file
+      x-accepts:
+      - text/plain
+  /minio/presigned/upload/{filename}:
+    get:
+      parameters:
+      - explode: false
+        in: path
+        name: filename
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            text/plain:
+              example: https://minio.example.com/upload/abc.txt?X-Amz-Signature=xyz
+          description: Presigned upload URL
+        "500":
+          content:
+            text/plain:
+              example:
+                Error: Presigned URL generation failed
+          description: Server error
+      summary: Get a presigned URL to upload a file
+      x-accepts:
+      - text/plain
+components:
+  schemas:
+    Book:
+      example:
+        fileName: fileName
+        year: 1
+        author: author
+        filePath: filePath
+        format: PDF
+        description: description
+        title: title
+        tags:
+        - tags
+        - tags
+        coverUrl: coverUrl
+        uploadDate: 2000-01-23T04:56:07.000+00:00
+        fileSize: 6
+        genre: genre
+        id: 0
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        author:
+          type: string
+        genre:
+          type: string
+        format:
+          $ref: "#/components/schemas/FormatEnum"
+        fileSize:
+          type: integer
+        year:
+          type: integer
+        description:
+          type: string
+        fileName:
+          type: string
+        filePath:
+          type: string
+        tags:
+          items:
+            type: string
+          type: array
+        coverUrl:
+          type: string
+        uploadDate:
+          format: date-time
+          type: string
+      type: object
+    PaginatedBooksResponse:
+      example:
+        number: 2
+        size: 7
+        totalPages: 5
+        content:
+        - fileName: fileName
+          year: 1
+          author: author
+          filePath: filePath
+          format: PDF
+          description: description
+          title: title
+          tags:
+          - tags
+          - tags
+          coverUrl: coverUrl
+          uploadDate: 2000-01-23T04:56:07.000+00:00
+          fileSize: 6
+          genre: genre
+          id: 0
+        - fileName: fileName
+          year: 1
+          author: author
+          filePath: filePath
+          format: PDF
+          description: description
+          title: title
+          tags:
+          - tags
+          - tags
+          coverUrl: coverUrl
+          uploadDate: 2000-01-23T04:56:07.000+00:00
+          fileSize: 6
+          genre: genre
+          id: 0
+        totalElements: 5
+      properties:
+        content:
+          items:
+            $ref: "#/components/schemas/Book"
+          type: array
+        totalPages:
+          type: integer
+        totalElements:
+          type: integer
+        number:
+          type: integer
+        size:
+          type: integer
+      type: object
+    BookMetadata:
+      example:
+        year: 0
+        author: author
+        genre: genre
+        description: description
+        title: title
+        tags:
+        - tags
+        - tags
+      properties:
+        title:
+          type: string
+        author:
+          type: string
+        genre:
+          type: string
+        year:
+          type: integer
+        description:
+          type: string
+        tags:
+          items:
+            type: string
+          type: array
+      type: object
+    Stats:
+      example:
+        authorCount: 2
+        azw3Count: 5
+        pdfCount: 6
+        totalFileSize: 7
+        epubCount: 1
+        totalBooks: 0
+        mobiCount: 5
+      properties:
+        totalBooks:
+          type: integer
+        pdfCount:
+          type: integer
+        epubCount:
+          type: integer
+        mobiCount:
+          type: integer
+        azw3Count:
+          type: integer
+        authorCount:
+          type: integer
+        totalFileSize:
+          type: integer
+      type: object
+    FormatEnum:
+      enum:
+      - PDF
+      - EPUB
+      - MOBI
+      - AZW3
+      type: string
+    Error:
+      properties:
+        message:
+          type: string
+      type: object
+    _api_books_upload_post_request:
+      properties:
+        files:
+          items:
+            format: binary
+            type: string
+          type: array
+        metadata:
+          description: JSON string of metadata
+          type: string
+      type: object
+    _minio_upload_post_request:
+      properties:
+        file:
+          format: binary
+          type: string
+      type: object
+  securitySchemes:
+    bearerAuth:
+      bearerFormat: JWT
+      scheme: bearer
+      type: http
