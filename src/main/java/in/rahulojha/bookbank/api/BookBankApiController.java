@@ -1,21 +1,23 @@
 package in.rahulojha.bookbank.api;
 
 
-import in.rahulojha.bookbank.model.*;
+import in.rahulojha.bookbank.model.Book;
+import in.rahulojha.bookbank.model.BookMetadata;
+import in.rahulojha.bookbank.model.FormatEnum;
+import in.rahulojha.bookbank.model.PaginatedBooksResponse;
+import in.rahulojha.bookbank.model.Stats;
 import in.rahulojha.bookbank.service.BookService;
+import jakarta.annotation.Generated;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.context.request.NativeWebRequest;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-
-import jakarta.annotation.Generated;
-import org.springframework.web.multipart.MultipartFile;
 
 @Generated(value = "org.openapitools.codegen.languages.SpringCodegen", comments = "Generator version: 7.14.0")
 @Controller
@@ -37,7 +39,7 @@ public class BookBankApiController implements BookBankApi {
 
         return ResponseEntity.ok(bookService.createBook(files, metadata));
     }
-//
+
     @Override
     public ResponseEntity<Book> apiBooksIdGet(UUID id) {
         return ResponseEntity.ok(bookService.findBookById(id));
