@@ -8,8 +8,6 @@ import in.rahulojha.bookbank.model.FormatEnum;
 import in.rahulojha.bookbank.model.Stats;
 import in.rahulojha.bookbank.repository.BookRepository;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
-import org.springframework.boot.json.GsonJsonParser;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,13 +16,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.BiPredicate;
-import java.util.function.Predicate;
 
 @Service
 @RequiredArgsConstructor
 public class BookService {
     private final BookRepository bookRepository;
     private final MinioService minioService;
+    private final BiPredicate<Book, FormatEnum> bookFilter = (book, format) -> Objects.equals(book.getFormat(), format);
 
     /*--------------------------CREATE----------------------------*/
     public Book createBook(List<MultipartFile> books, String metadata) throws Exception {
@@ -48,8 +46,6 @@ public class BookService {
         }
         return new Book();
     }
-
-
 
     /*--------------------------READ----------------------------*/
     public List<Book> findAllBooks() {
@@ -80,15 +76,13 @@ public class BookService {
 
         bookRepository.save(bookEntity);
     }
+
     /*--------------------------DELETE----------------------------*/
     public void deleteBookById(UUID id) {
         var bookEntity = bookRepository.findById(id)
                 .orElseThrow(BookNotFoundException::new);;
         bookRepository.delete(bookEntity);
     }
-
-
-
 
     public Stats getAllStats() {
         List<Book> books = findAllBooks();
@@ -105,15 +99,4 @@ public class BookService {
         stats.setTotalFileSize(books.stream().map(Book::getFileSize).filter(Objects::nonNull).reduce(Long::sum).orElseGet(() -> 0L));
         return stats;
     }
-
-    BiPredicate<Book, FormatEnum> bookFilter = (book, format) -> {
-        assert book.getFormat() != null;
-        return book.getFormat().equals(format);
-    };
-
-
-
-
-
-
 }
